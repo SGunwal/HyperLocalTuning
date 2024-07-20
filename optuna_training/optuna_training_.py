@@ -26,12 +26,6 @@ DF_PREPROCESSED_DIR = BASE_DIRECTORY + "/datasets/California_Housing_Dataset/pre
 
 #################################################################################################################
 
-def make_writable(arr):
-    """Ensure array is writable."""
-    arr = np.array(arr, copy=True)  # Ensure it's a numpy array and make a copy to ensure it's writable
-    arr.setflags(write=1)           # Explicitly set writable flag to True
-    return arr
-
 def optuna_optimizer(trial):
 
     hyper_l1 = trial.suggest_float('l1', 1e-10, 50.0) # L1 - Lasso
@@ -98,28 +92,12 @@ def optuna_training(num_trials):
 
     return optuna_model_weights, optuna_model_bias, init_hyperparameters, delta
 
-def load_dataset():
-
-    """Main function to execute Optuna training process."""
-    global x_train, x_val, x_test, y_train, y_val, y_test
-
-    # LOAD PREPROCESSED DATA
-    with open(DF_PREPROCESSED_DIR, "rb") as fin:
-        data = pkl.load(fin)
-
-    # Ensure data is mutable
-    x_train = make_writable(data['x_train'])
-    x_val = make_writable(data['x_val'])
-    x_test = make_writable(data['x_test'])
-    y_train = make_writable(data['y_train'])
-    y_val = make_writable(data['y_val'])
-    y_test = make_writable(data['y_test'])
-
 def run_optuna_training(sampler, trials):
 
     global TYPE_OF_SAMPLER
+    global x_train, x_val, x_test, y_train, y_val, y_test
     # Loading dataset
-    load_dataset()
+    x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
     # Running Optuna Training
     TYPE_OF_SAMPLER = sampler #'random' # 'grid', 'random', 'qmc', 'tpe'
     NUM_OPTUNA_TRIALS = trials
@@ -135,36 +113,39 @@ def run_optuna_training(sampler, trials):
 
 if __name__ == "__main__":
 
-    sampler = 'random'
+    all_samplers = ['grid', 'random', 'qmc', 'tpe']
 
     number_of_simulations_per_trial = 50
-    number_of_optuna_trials = [50*i for i in range(1,11)]
+    number_of_optuna_trials = [100] #[50*i for i in range(1,11)]
 
     backup_dictionary = {}
-    for num_trials in number_of_optuna_trials:
-        backup_dictionary[f'{num_trials}'] = {"score":[], "runtime":[]}
-        for simulation_num in range(number_of_simulations_per_trial):
+    for sampler in all_samplers:
+        for num_trials in number_of_optuna_trials:
+            # backup_dictionary[f'{num_trials}'] = {"score":[], "runtime":[]}
+            for simulation_num in range(number_of_simulations_per_trial):
+                model_info                    = run_optuna_training(sampler, num_trials)
+                backup_dictionary[f'{sampler}_{num_trials}_{simulation_num}'] = model_info
+                # optimal_weights, optimal_bias = model_info[0], model_info[1]
+                # score = evaluate_loss(x_val, y_val, optimal_weights, optimal_bias).numpy()
+                # time  = model_info[-1]
+                # backup_dictionary[f'{num_trials}']["score"].append(score)
+                # backup_dictionary[f'{num_trials}']["runtime"].append(time)
+    with open( BASE_DIRECTORY + "/all_optuna_models.pickle", "wb") as fout:
+            pkl.dump(backup_dictionary, fout)
+    
+    # # Populate rows with averages for each num_trials
+    # rows = []
+    # for num_trials, values in backup_dictionary.items():
+    #     avg_score = sum(values["score"]) / len(values["score"])
+    #     total_seconds = [td.total_seconds() for td in values["runtime"]]
+    #     avg_runtime = sum(total_seconds) / len(total_seconds)
 
-            model_info                    = run_optuna_training(sampler, num_trials)
-            optimal_weights, optimal_bias = model_info[0], model_info[1]
-            score = evaluate_loss(x_val, y_val, optimal_weights, optimal_bias).numpy()
-            time  = model_info[-1]
-            backup_dictionary[f'{num_trials}']["score"].append(score)
-            backup_dictionary[f'{num_trials}']["runtime"].append(time)
-
-    # Populate rows with averages for each num_trials
-    rows = []
-    for num_trials, values in backup_dictionary.items():
-        avg_score = sum(values["score"]) / len(values["score"])
-        total_seconds = [td.total_seconds() for td in values["runtime"]]
-        avg_runtime = sum(total_seconds) / len(total_seconds)
-
-        row = {"num_trials": num_trials, 
-               f"avg_score_{number_of_simulations_per_trial}": avg_score, 
-               f"avg_runtime_{number_of_simulations_per_trial}": avg_runtime
-               }
-        rows.append(row)
-    # Create a DataFrame from the rows
-    df = pd.DataFrame(rows)
-    # Save to Excel
-    df.to_excel(f"optuna_results_({sampler}).xlsx", index=False)
+    #     row = {"num_trials": num_trials, 
+    #            f"avg_score_{number_of_simulations_per_trial}": avg_score, 
+    #            f"avg_runtime_{number_of_simulations_per_trial}": avg_runtime
+    #            }
+    #     rows.append(row)
+    # # Create a DataFrame from the rows
+    # df = pd.DataFrame(rows)
+    # # Save to Excel
+    # df.to_excel(f"optuna_results_({sampler}).xlsx", index=False)
