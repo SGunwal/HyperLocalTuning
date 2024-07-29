@@ -1,0 +1,8 @@
+Steps to manage the libraries for this project
+
+1. Run "installs.py" file to install the libraries imported in folder "imports.py"
+2. Then run "imports.py" to see if all package installed correctly
+3. Add/remove or specify versions of package to install in "installs.py" if any package is unavailable;
+    the versions used for this project are given in "versions.txt"
+
+NOTE: "versions.txt" is rewritten every time you install a new package via "installs.py" file. To retain this file, comment out the related code.

@@ -1,0 +1,19 @@
+Instructions to Preprocessing:
+
+1. Put housing.csv and preprocessing.py in same directory of your system.
+2. Open command prompt (if windows) in that directory. 
+3. Run the command line: python preprocessing.py "median_house_value"
+4. This will automatically preprocess and write a pickle file in the same directory named preprocessed_housing.pickle
+5. The pickle file is a python dictionary of the following form:
+
+    data = {
+        "x_train": X_train,
+        "x_val": X_val,
+        "x_test": X_test,
+        "y_train": y_train,
+        "y_val": y_val,
+        "y_test": y_test
+    }
+
+
+NOTE: Current random seed values are already fixed to the values used for experiments.
