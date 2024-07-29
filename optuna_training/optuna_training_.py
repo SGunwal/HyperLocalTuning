@@ -116,7 +116,7 @@ if __name__ == "__main__":
     all_samplers = ['grid', 'random', 'qmc', 'tpe']
 
     number_of_simulations_per_trial = 50
-    number_of_optuna_trials = [100] #[50*i for i in range(1,11)]
+    number_of_optuna_trials = [50] #[50*i for i in range(1,11)]
 
     backup_dictionary = {}
     for sampler in all_samplers:
@@ -130,7 +130,7 @@ if __name__ == "__main__":
                 # time  = model_info[-1]
                 # backup_dictionary[f'{num_trials}']["score"].append(score)
                 # backup_dictionary[f'{num_trials}']["runtime"].append(time)
-    with open( BASE_DIRECTORY + "/all_optuna_models.pickle", "wb") as fout:
+    with open( BASE_DIRECTORY + "/all_optuna_models_50_trials.pickle", "wb") as fout:
             pkl.dump(backup_dictionary, fout)
     
     # # Populate rows with averages for each num_trials

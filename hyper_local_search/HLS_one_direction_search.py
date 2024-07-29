@@ -24,22 +24,22 @@ class GoldenSectionSearch:
 
         self.init_hyperparameters = np.array(init_hyperparameters)
         self.hyperparameter_direction = np.array(hyperparameter_direction)/np.linalg.norm(hyperparameter_direction)
-        self.X = X
-        self.y = y
+        self.X = X # validation
+        self.y = y # validation
 
     def compute_loss(self, weights, bias):
         y_pred = tf.reduce_sum(tf.multiply(self.X,weights), axis=1) + bias
         loss = tf.keras.losses.MeanSquaredError()(y_true=self.y, y_pred=y_pred)
         return loss
 
-    def interval_search(self, init_t=0, step=0.1):
+    def interval_search(self, init_t, step):
         a = init_t
         b = init_t + step
 
         a_hyperparams = self.init_hyperparameters + a * self.hyperparameter_direction
         b_hyperparams = self.init_hyperparameters + b * self.hyperparameter_direction
 
-        _ , a_optimal_weights, a_optimal_bias, _ = elastic_net_regression(x_train, y_train, a_hyperparams[0], b_hyperparams[1])
+        _ , a_optimal_weights, a_optimal_bias, _ = elastic_net_regression(x_train, y_train, a_hyperparams[0], a_hyperparams[1])
         _ , b_optimal_weights, b_optimal_bias, _ = elastic_net_regression(x_train, y_train, b_hyperparams[0], b_hyperparams[1])
 
         loss_a = self.compute_loss(a_optimal_weights, a_optimal_bias)
@@ -56,7 +56,6 @@ class GoldenSectionSearch:
             b_hyperparams                            = np.maximum(b_hyperparams, 1e-10)
             _ , b_optimal_weights, b_optimal_bias, _ = elastic_net_regression(x_train, y_train, b_hyperparams[0], b_hyperparams[1])
             loss_b                                   = self.compute_loss(b_optimal_weights, b_optimal_bias)
-
  
         if i == 0:
             return a, b
@@ -118,45 +117,79 @@ if __name__ == '__main__':
 
     global x_train, x_val, x_test, y_train, y_val, y_test
     x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
-    # Model Type
-    sampler    = 'grid'
-    num_trials = 100
-    simulation_num = 10
 
-    # LOADING OPTUNA TRAINED MODELS
-    OPTUNA_MODEL_DIRECTORY = BASE_DIRECTORY + "/all_optuna_models.pickle"
-    with open(OPTUNA_MODEL_DIRECTORY, "rb") as fout:
-            optuna_trained_models = pkl.load(fout)
-    model_info = optuna_trained_models[f'{sampler}_{num_trials}_{simulation_num}']
-    [ optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time ] = model_info
-
-    # GATHERING DIRECTION DATA
-    objective_w_b             = exact_gradient_validation(x_val, y_val, optuna_model_weights, optuna_model_bias, batch_size=None)
-    constraint_matrix         = constraint_coefficients(x_train, [list(optuna_model_weights)] + [[optuna_model_bias]], init_hyperparameters)
-    number_of_hyperparameters = len(init_hyperparameters)
-
-    solution, objective, runtime                                             = Bilevel_Descent_Direction( objective_w_b, constraint_matrix, number_of_hyperparameters, 0.0001 )
-    hyperparameter_direction, model_weights_direction , model_bias_direction = unflatten( solution, number_of_hyperparameters )
-
-    # GOLDEN SECTION SEARCH
-
-    GSS_Obj  = GoldenSectionSearch(init_hyperparameters, hyperparameter_direction, x_val, y_val)
+    # RUNNING ALL SIMULATIONS
     
-    optimal_hyperparameters, optimal_weights, optimal_bias, optimal_loss, optimal_delta = GSS_Obj.find_optimal_weights()
-    model, optimal_weights, optimal_bias, mse_loss                                      = elastic_net_regression(x_train, y_train, optimal_hyperparameters[0], optimal_hyperparameters[1])
+    list_of_all_samplers    = ['grid', 'random', 'qmc', 'tpe']
+    number_of_optuna_trials = [100]
+    num_simulation_trials   = 50
 
-    # Evaluating optimal loss
-    optuna_train_loss  = evaluate_loss(x_train, y_train, optuna_model_weights, optuna_model_bias)
-    optimal_train_loss = evaluate_loss(x_train, y_train, optimal_weights, optimal_bias)
+    
+    full_results_dictionary = {}
+    for sampler_type in list_of_all_samplers:
+        full_results_dictionary[f"{sampler_type}"] = {}
+        for optuna_trials in number_of_optuna_trials:
+            full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"] = {} #{ "Training_Losses":[], "Validation_Losses":[], "Testing_Losses":[] }
+            tr_optuna_losses, tr_hls_losses, val_optuna_losses, val_hls_losses, test_optuna_losses, test_hls_losses = [], [], [], [], [], []
+            optuna_times, hls_times = [], []
+            for simulation_number in range(num_simulation_trials):
 
-    optuna_test_loss  = evaluate_loss( x_test, y_test, optuna_model_weights, optuna_model_bias )
-    optimal_test_loss = evaluate_loss( x_test, y_test, optimal_weights, optimal_bias )
+                # LOADING OPTUNA TRAINED MODELS
+                OPTUNA_MODEL_DIRECTORY = BASE_DIRECTORY + "/all_optuna_models.pickle" #"/all_optuna_models_50_trials.pickle"
+                with open(OPTUNA_MODEL_DIRECTORY, "rb") as fout:
+                        optuna_trained_models = pkl.load(fout)
+                model_info = optuna_trained_models[f'{sampler_type}_{optuna_trials}_{simulation_number}']
+                [ optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time ] = model_info
 
-    optuna_val_loss  = evaluate_loss( x_val, y_val, optuna_model_weights, optuna_model_bias)
-    optimal_val_loss = evaluate_loss( x_val, y_val, optimal_weights, optimal_bias)
+                # print("\n\n optuna_time = ", optuna_time.total_seconds(), "\n\n")
 
-    print("\nTraining losses = ", optuna_train_loss, optimal_train_loss)
-    print("Validation losses = ", optuna_val_loss, optimal_val_loss)
-    print("Test losses = ", optuna_test_loss, optimal_test_loss)
+                ###################################################### HLS #############################################################
 
+                starting_hls_time = datetime.now()
+                # GATHERING DIRECTION DATA
+                objective_w_b             = exact_gradient_validation(x_val, y_val, optuna_model_weights, optuna_model_bias, batch_size=None)
+                constraint_matrix         = constraint_coefficients(x_train, [list(optuna_model_weights)] + [[optuna_model_bias]], init_hyperparameters)
+                number_of_hyperparameters = len(init_hyperparameters)
+
+                solution, objective, runtime                                             = Bilevel_Descent_Direction( objective_w_b, constraint_matrix, number_of_hyperparameters, 0.0001 )
+                hyperparameter_direction, model_weights_direction , model_bias_direction = unflatten( solution, number_of_hyperparameters )
+
+                # GOLDEN SECTION SEARCH
+
+                GSS_Obj  = GoldenSectionSearch(init_hyperparameters, hyperparameter_direction, x_val, y_val)
+                
+                optimal_hyperparameters, optimal_weights, optimal_bias, optimal_loss, optimal_delta = GSS_Obj.find_optimal_weights()
+                model, optimal_weights, optimal_bias, mse_loss                                      = elastic_net_regression(x_train, y_train, optimal_hyperparameters[0], optimal_hyperparameters[1])
+
+                # Evaluating optimal loss
+                optuna_train_loss  = evaluate_loss(x_train, y_train, optuna_model_weights, optuna_model_bias)
+                optimal_train_loss = evaluate_loss(x_train, y_train, optimal_weights, optimal_bias)
+
+                optuna_test_loss  = evaluate_loss( x_test, y_test, optuna_model_weights, optuna_model_bias )
+                optimal_test_loss = evaluate_loss( x_test, y_test, optimal_weights, optimal_bias )
+
+                optuna_val_loss  = evaluate_loss( x_val, y_val, optuna_model_weights, optuna_model_bias)
+                optimal_val_loss = evaluate_loss( x_val, y_val, optimal_weights, optimal_bias)
+
+                end_hls_time   = datetime.now()
+                total_hls_time = end_hls_time - starting_hls_time
+
+                optuna_times.append(optuna_time.total_seconds())
+                hls_times.append(total_hls_time.total_seconds())
+
+                tr_optuna_losses.append(optuna_train_loss.numpy())
+                tr_hls_losses.append(optimal_train_loss.numpy())
+                val_optuna_losses.append(optuna_val_loss.numpy())
+                val_hls_losses.append(optimal_val_loss.numpy())
+                test_optuna_losses.append(optuna_test_loss.numpy())
+                test_hls_losses.append(optimal_test_loss.numpy())
+
+            full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Training_Losses"]   = [tr_optuna_losses,tr_hls_losses]
+            full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Validation_Losses"] = [val_optuna_losses,val_hls_losses]
+            full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Testing_Losses"]    = [test_optuna_losses,test_hls_losses]
+            full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Runtimes"]          = [optuna_times,hls_times]
+
+    # Saving the output
+    with open( BASE_DIRECTORY + f"/final_results.pickle", "wb") as fout:
+        pkl.dump(full_results_dictionary, fout)
 
