@@ -113,7 +113,7 @@ if __name__ == '__main__':
 
     # Loading Datasets as globals
     BASE_DIRECTORY         = "."
-    DF_PREPROCESSED_DIR = BASE_DIRECTORY + "/datasets/California_Housing_Dataset/preprocessed_housing.pickle"
+    DF_PREPROCESSED_DIR    = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle"
 
     global x_train, x_val, x_test, y_train, y_val, y_test
     x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
@@ -121,8 +121,8 @@ if __name__ == '__main__':
     # RUNNING ALL SIMULATIONS
     
     list_of_all_samplers    = ['grid', 'random', 'qmc', 'tpe']
-    number_of_optuna_trials = [100]
     num_simulation_trials   = 50
+    number_of_optuna_trials = [100]
 
     
     full_results_dictionary = {}
@@ -135,7 +135,7 @@ if __name__ == '__main__':
             for simulation_number in range(num_simulation_trials):
 
                 # LOADING OPTUNA TRAINED MODELS
-                OPTUNA_MODEL_DIRECTORY = BASE_DIRECTORY + "/all_optuna_models.pickle" #"/all_optuna_models_50_trials.pickle"
+                OPTUNA_MODEL_DIRECTORY = BASE_DIRECTORY + f"/outputs/all_optuna_models_{num_simulation_trials}_simulations.pickle" 
                 with open(OPTUNA_MODEL_DIRECTORY, "rb") as fout:
                         optuna_trained_models = pkl.load(fout)
                 model_info = optuna_trained_models[f'{sampler_type}_{optuna_trials}_{simulation_number}']
@@ -190,6 +190,6 @@ if __name__ == '__main__':
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Runtimes"]          = [optuna_times,hls_times]
 
     # Saving the output
-    with open( BASE_DIRECTORY + f"/final_results.pickle", "wb") as fout:
+    with open( BASE_DIRECTORY + f"/outputs/HLS_Results/final_hls_output.pickle", "wb") as fout:
         pkl.dump(full_results_dictionary, fout)
 

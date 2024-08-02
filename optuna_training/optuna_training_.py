@@ -16,20 +16,19 @@ from imports import *
 from helper_functions import *
 
 # SET RANDOM SEET
-SEED = 42
-np.random.seed(SEED)
-tf.random.set_seed(SEED)
+SEED = None
+# np.random.seed(SEED)
+# tf.random.set_seed(SEED)
 
 # SET DIRECTORIES
 BASE_DIRECTORY = "."
-DF_PREPROCESSED_DIR = BASE_DIRECTORY + "/datasets/California_Housing_Dataset/preprocessed_housing.pickle"
-
+DF_PREPROCESSED_DIR = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle"
 #################################################################################################################
 
 def optuna_optimizer(trial):
 
-    hyper_l1 = trial.suggest_float('l1', 1e-10, 50.0) # L1 - Lasso
-    hyper_l2 = trial.suggest_float('l2', 1e-10, 50.0) # L2 - Ridge
+    hyper_l1 = trial.suggest_float('l1', 1e-10, 1.0) # L1 - Lasso
+    hyper_l2 = trial.suggest_float('l2', 1e-10, 1.0) # L2 - Ridge
 
     model, optimal_weights, optimal_bias, _ = elastic_net_regression(x_train, y_train, hyper_l1, hyper_l2)
 
@@ -44,7 +43,7 @@ def optuna_optimizer(trial):
     score = val_loss_unregularized
     if score < optuna_optimizer.best_score:
         optuna_optimizer.best_score = score
-        with open( BASE_DIRECTORY + "/best_model.pickle", "wb") as fout:
+        with open( BASE_DIRECTORY + "/outputs/best_optuna_model.pickle", "wb") as fout:
             pkl.dump(model, fout)
         print("Updated best model and training info with new best score: ", score)
 
@@ -54,14 +53,14 @@ def optuna_training(num_trials):
     time1 = datetime.now()
 
     if TYPE_OF_SAMPLER == 'grid':
-        search_space = { f"l{i}" : list(np.linspace(0,1,100)) for i in range(1,3) }
-        study = optuna.create_study(sampler=optuna.samplers.GridSampler(search_space), direction = "minimize") # seed=SEED
+        search_space = { f"l{i}" : list(np.linspace(1e-10,1,2*num_trials)) for i in range(1,3) }
+        study = optuna.create_study(sampler=optuna.samplers.GridSampler(search_space, seed=SEED), direction = "minimize") # seed=SEED
     elif TYPE_OF_SAMPLER == 'random':
-        study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=None), direction = "minimize")
+        study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=SEED), direction = "minimize")
     elif TYPE_OF_SAMPLER == 'qmc':
-        study = optuna.create_study(sampler=optuna.samplers.QMCSampler(seed=None), direction = "minimize")
+        study = optuna.create_study(sampler=optuna.samplers.QMCSampler(seed=SEED), direction = "minimize")
     elif TYPE_OF_SAMPLER == 'tpe':
-        study = optuna.create_study(sampler=optuna.samplers.TPESampler(seed=None), direction = "minimize")
+        study = optuna.create_study(sampler=optuna.samplers.TPESampler(seed=SEED), direction = "minimize")
     else:
         print(" Using default sampler.... TPESampler")
         study = optuna.create_study(direction="minimize")
@@ -83,7 +82,7 @@ def optuna_training(num_trials):
     delta = time2 - time1
     print(f"Time difference is {delta.total_seconds()} seconds")
 
-    with open( BASE_DIRECTORY + "/best_model.pickle", "rb") as fin:
+    with open( BASE_DIRECTORY + "/outputs/best_optuna_model.pickle", "rb") as fin:
         best_clf = pkl.load(fin)
 
     optuna_model_weights = best_clf.coef_
@@ -99,53 +98,27 @@ def run_optuna_training(sampler, trials):
     # Loading dataset
     x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
     # Running Optuna Training
-    TYPE_OF_SAMPLER = sampler #'random' # 'grid', 'random', 'qmc', 'tpe'
+    TYPE_OF_SAMPLER = sampler # 'grid', 'random', 'qmc', 'tpe'
     NUM_OPTUNA_TRIALS = trials
     optuna_optimizer.best_score = float('inf')  # initial score set to a very large number
     optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time = optuna_training(NUM_OPTUNA_TRIALS)
     model__ = [optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time]
 
     return model__
-    # # Save Optuna Trained Models
-    # OPTUNA_MODEL_DIRECTORY = BASE_DIRECTORY + "/optuna_linear_regression_model.pickle"
-    # with open(OPTUNA_MODEL_DIRECTORY, "wb") as fout:
-    #     pkl.dump(model__, fout)
 
 if __name__ == "__main__":
 
     all_samplers = ['grid', 'random', 'qmc', 'tpe']
 
     number_of_simulations_per_trial = 50
-    number_of_optuna_trials = [50] #[50*i for i in range(1,11)]
+    number_of_optuna_trials = [100] 
 
     backup_dictionary = {}
-    for sampler in all_samplers:
-        for num_trials in number_of_optuna_trials:
-            # backup_dictionary[f'{num_trials}'] = {"score":[], "runtime":[]}
+
+    for num_trials in number_of_optuna_trials:
+        for sampler in all_samplers:
             for simulation_num in range(number_of_simulations_per_trial):
                 model_info                    = run_optuna_training(sampler, num_trials)
                 backup_dictionary[f'{sampler}_{num_trials}_{simulation_num}'] = model_info
-                # optimal_weights, optimal_bias = model_info[0], model_info[1]
-                # score = evaluate_loss(x_val, y_val, optimal_weights, optimal_bias).numpy()
-                # time  = model_info[-1]
-                # backup_dictionary[f'{num_trials}']["score"].append(score)
-                # backup_dictionary[f'{num_trials}']["runtime"].append(time)
-    with open( BASE_DIRECTORY + "/all_optuna_models_50_trials.pickle", "wb") as fout:
+    with open( BASE_DIRECTORY + f"/outputs/all_optuna_models_{number_of_simulations_per_trial}_simulations.pickle", "wb") as fout:
             pkl.dump(backup_dictionary, fout)
-    
-    # # Populate rows with averages for each num_trials
-    # rows = []
-    # for num_trials, values in backup_dictionary.items():
-    #     avg_score = sum(values["score"]) / len(values["score"])
-    #     total_seconds = [td.total_seconds() for td in values["runtime"]]
-    #     avg_runtime = sum(total_seconds) / len(total_seconds)
-
-    #     row = {"num_trials": num_trials, 
-    #            f"avg_score_{number_of_simulations_per_trial}": avg_score, 
-    #            f"avg_runtime_{number_of_simulations_per_trial}": avg_runtime
-    #            }
-    #     rows.append(row)
-    # # Create a DataFrame from the rows
-    # df = pd.DataFrame(rows)
-    # # Save to Excel
-    # df.to_excel(f"optuna_results_({sampler}).xlsx", index=False)
