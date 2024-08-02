@@ -32,10 +32,10 @@ def calculate_95_ci(data):
 if __name__ == '__main__':
 
     # FINAL RESULTS OUTPUT DIRECTORY
-    output_directory = "C:\\Users\\Sandeep\\Desktop\\Github-SGunwal\\HyperLocalTuning\\final_results\\"
+    output_directory = "C:\\Users\\Sandeep\\Desktop\\Github-SGunwal\\HyperLocalTuning\\outputs\\HLS_Results\\"
 
     # LOAD PREPROCESSED DATA
-    full_result_path = "C:\\Users\\Sandeep\\Desktop\\Github-SGunwal\\HyperLocalTuning\\final_results.pickle"
+    full_result_path = output_directory + "final_hls_output.pickle"
     with open(full_result_path, "rb") as fin:
         data = pkl.load(fin)
 
@@ -66,6 +66,3 @@ if __name__ == '__main__':
 
             file_name = "summary_results_" + sampler_type
             summary_df.to_excel( output_directory + file_name + f'{trial_type}.xlsx', index=True)
-
-
-
