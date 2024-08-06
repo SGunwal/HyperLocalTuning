@@ -90,6 +90,7 @@ dash-html-components==2.0.0
 dash-core-components==2.0.0
 cycler==0.12.1
 contourpy==1.2.0
+config==0.5.1
 colorlog==6.8.2
 colorama==0.4.6
 click==8.1.3

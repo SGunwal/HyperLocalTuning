@@ -193,7 +193,8 @@ def plot_3d_losses(optuna_steps_, hls_steps_, show_vertical_lines=False, width=8
     )
 
     if html_file:
-        fig.write_html(html_file)
+        fig.write_html(html_file+".html")
+        fig.write_image(html_file+".pdf", width=1500, height=1000, scale=2)
 
     # fig.show()
 
@@ -330,7 +331,8 @@ def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_typ
     fig.update_layout(**layout_config)
 
     if html_file:
-        fig.write_html(html_file)
+        fig.write_html(html_file+".html")
+        fig.write_image(html_file+".pdf", width=1500, height=1000, scale=2)
 
     # fig.show()
 
@@ -350,8 +352,8 @@ if __name__ == '__main__':
     # PLOTTING
     for sampler_type in list_of_all_samplers:
         # Printing the plots
-        # plot_3d_losses(optuna_steps_dict, hls_step_dict, show_vertical_lines=True, width=2000, height=1500, sampler_ = sampler_type, html_file= WORKING_BASE_DIRECTORY + f'/{sampler_type}_3Dloss_movement.html')
-        plot_2d_losses(optuna_steps_dict, hls_step_dict, width=1200, height=800, sampler_type = sampler_type, html_file= WORKING_BASE_DIRECTORY + f'/{sampler_type}_2Dloss_movement.html')
+        plot_3d_losses(optuna_steps_dict, hls_step_dict, show_vertical_lines=True, width=2000, height=1500, sampler_ = sampler_type, html_file= WORKING_BASE_DIRECTORY + f'/plotly_plots/{sampler_type}_3Dloss_movement')
+        plot_2d_losses(optuna_steps_dict, hls_step_dict, width=1200, height=800, sampler_type = sampler_type, html_file= WORKING_BASE_DIRECTORY + f'/plotly_plots/{sampler_type}_2Dloss_movement')
 
 
 

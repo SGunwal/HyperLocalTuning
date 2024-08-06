@@ -21,7 +21,8 @@ packages = [
     'seaborn',
     'scikit-learn',
     'plotly',
-    'config'
+    'config',
+    'kaleido'
 ]
 
 # Install each package
