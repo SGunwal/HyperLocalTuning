@@ -114,6 +114,7 @@ if __name__ == '__main__':
     # Loading Datasets as globals
     BASE_DIRECTORY         = "."
     DF_PREPROCESSED_DIR    = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle"
+    BASE_DIRECTORY         = BASE_DIRECTORY + "/outputs/plots"
 
     global x_train, x_val, x_test, y_train, y_val, y_test
     x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
@@ -121,13 +122,15 @@ if __name__ == '__main__':
     # RUNNING ALL SIMULATIONS
     
     list_of_all_samplers    = ['grid', 'random', 'qmc', 'tpe']
-    num_simulation_trials   = 50
+    num_simulation_trials   = 1
     number_of_optuna_trials = [100]
 
-    
     full_results_dictionary = {}
+    hls_final_model = {}
     for sampler_type in list_of_all_samplers:
         full_results_dictionary[f"{sampler_type}"] = {}
+        hls_final_model["hls_steps"+sampler_type] = []
+        hls_final_model["hls_hyperparams"+sampler_type] = [] 
         for optuna_trials in number_of_optuna_trials:
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"] = {} #{ "Training_Losses":[], "Validation_Losses":[], "Testing_Losses":[] }
             tr_optuna_losses, tr_hls_losses, val_optuna_losses, val_hls_losses, test_optuna_losses, test_hls_losses = [], [], [], [], [], []
@@ -135,7 +138,7 @@ if __name__ == '__main__':
             for simulation_number in range(num_simulation_trials):
 
                 # LOADING OPTUNA TRAINED MODELS
-                OPTUNA_MODEL_DIRECTORY = BASE_DIRECTORY + f"/outputs/all_optuna_models_{num_simulation_trials}_simulations.pickle" 
+                OPTUNA_MODEL_DIRECTORY = BASE_DIRECTORY + f"/all_optuna_models_{num_simulation_trials}_simulations.pickle" 
                 with open(OPTUNA_MODEL_DIRECTORY, "rb") as fout:
                         optuna_trained_models = pkl.load(fout)
                 model_info = optuna_trained_models[f'{sampler_type}_{optuna_trials}_{simulation_number}']
@@ -184,12 +187,20 @@ if __name__ == '__main__':
                 test_optuna_losses.append(optuna_test_loss.numpy())
                 test_hls_losses.append(optimal_test_loss.numpy())
 
+                # Updating the HLS steps
+                hls_final_model["hls_steps"+sampler_type].append([optimal_weights, optimal_bias])
+                hls_final_model["hls_hyperparams"+sampler_type].append(optimal_hyperparameters)
+
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Training_Losses"]   = [tr_optuna_losses,tr_hls_losses]
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Validation_Losses"] = [val_optuna_losses,val_hls_losses]
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Testing_Losses"]    = [test_optuna_losses,test_hls_losses]
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Runtimes"]          = [optuna_times,hls_times]
 
     # Saving the output
-    with open( BASE_DIRECTORY + f"/outputs/HLS_Results/final_hls_output.pickle", "wb") as fout:
+    with open( BASE_DIRECTORY + f"/final_hls_output.pickle", "wb") as fout:
         pkl.dump(full_results_dictionary, fout)
+    
+    # Saving the output for plots
+    with open( BASE_DIRECTORY + f"/hls_final_model.pickle", "wb") as fout:
+        pkl.dump(hls_final_model, fout)
 

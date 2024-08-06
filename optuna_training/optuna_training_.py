@@ -16,13 +16,20 @@ from imports import *
 from helper_functions import *
 
 # SET RANDOM SEET
-SEED = None
+global SEED 
+
+model_steps = {}
+for sampler_ in ['grid', 'random', 'qmc', 'tpe']:
+    model_steps["optuna_steps"+sampler_] = []
+    model_steps["optuna_hyperparams"+sampler_] = []
 # np.random.seed(SEED)
 # tf.random.set_seed(SEED)
 
 # SET DIRECTORIES
+SEED = 123
 BASE_DIRECTORY = "."
 DF_PREPROCESSED_DIR = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle"
+WORKING_BASE_DIRECTORY = BASE_DIRECTORY + "/outputs/plots"
 #################################################################################################################
 
 def optuna_optimizer(trial):
@@ -40,10 +47,15 @@ def optuna_optimizer(trial):
     print("Validation: Loss ", val_loss_unregularized)
     print("Test:       Loss ", test_loss_unregularized, "\n\n")
 
+    # Saving Optuna Model Steps for Plotting (Optional)
+
+
     score = val_loss_unregularized
     if score < optuna_optimizer.best_score:
+        model_steps["optuna_steps"+TYPE_OF_SAMPLER].append([optimal_weights, optimal_bias])
+        model_steps["optuna_hyperparams"+TYPE_OF_SAMPLER].append([hyper_l1, hyper_l2])
         optuna_optimizer.best_score = score
-        with open( BASE_DIRECTORY + "/outputs/best_optuna_model.pickle", "wb") as fout:
+        with open( WORKING_BASE_DIRECTORY + "/best_optuna_model.pickle", "wb") as fout:
             pkl.dump(model, fout)
         print("Updated best model and training info with new best score: ", score)
 
@@ -82,7 +94,7 @@ def optuna_training(num_trials):
     delta = time2 - time1
     print(f"Time difference is {delta.total_seconds()} seconds")
 
-    with open( BASE_DIRECTORY + "/outputs/best_optuna_model.pickle", "rb") as fin:
+    with open( WORKING_BASE_DIRECTORY + "/best_optuna_model.pickle", "rb") as fin:
         best_clf = pkl.load(fin)
 
     optuna_model_weights = best_clf.coef_
@@ -99,7 +111,7 @@ def run_optuna_training(sampler, trials):
     x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
     # Running Optuna Training
     TYPE_OF_SAMPLER = sampler # 'grid', 'random', 'qmc', 'tpe'
-    NUM_OPTUNA_TRIALS = trials
+    NUM_OPTUNA_TRIALS = trials 
     optuna_optimizer.best_score = float('inf')  # initial score set to a very large number
     optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time = optuna_training(NUM_OPTUNA_TRIALS)
     model__ = [optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time]
@@ -110,7 +122,7 @@ if __name__ == "__main__":
 
     all_samplers = ['grid', 'random', 'qmc', 'tpe']
 
-    number_of_simulations_per_trial = 50
+    number_of_simulations_per_trial = 1
     number_of_optuna_trials = [100] 
 
     backup_dictionary = {}
@@ -120,5 +132,7 @@ if __name__ == "__main__":
             for simulation_num in range(number_of_simulations_per_trial):
                 model_info                    = run_optuna_training(sampler, num_trials)
                 backup_dictionary[f'{sampler}_{num_trials}_{simulation_num}'] = model_info
-    with open( BASE_DIRECTORY + f"/outputs/all_optuna_models_{number_of_simulations_per_trial}_simulations.pickle", "wb") as fout:
+    with open( WORKING_BASE_DIRECTORY + f"/all_optuna_models_{number_of_simulations_per_trial}_simulations.pickle", "wb") as fout:
             pkl.dump(backup_dictionary, fout)
+    with open( WORKING_BASE_DIRECTORY + f"/optuna_steps_dict.pickle", "wb") as fout:
+            pkl.dump(model_steps, fout)

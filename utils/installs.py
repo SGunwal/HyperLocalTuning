@@ -19,7 +19,9 @@ packages = [
     'datetime',
     'matplotlib',
     'seaborn',
-    'scikit-learn'
+    'scikit-learn',
+    'plotly',
+    'config'
 ]
 
 # Install each package
