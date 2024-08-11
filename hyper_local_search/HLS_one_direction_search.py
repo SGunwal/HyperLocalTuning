@@ -16,6 +16,22 @@ from imports import *
 from helper_functions import *
 from curvature_information import *
 
+########################################### SETTING UP DATA ###########################################
+
+# Loading Datasets as globals
+BASE_DIRECTORY         = "."
+DF_PREPROCESSED_DIR    = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle"
+BASE_DIRECTORY         = BASE_DIRECTORY + "/outputs"
+
+global x_train, x_val, x_test, y_train, y_val, y_test
+x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
+
+# RUNNING ALL SIMULATIONS
+
+list_of_all_samplers    = ['grid', 'random', 'qmc', 'tpe']
+num_simulation_trials   = 50
+number_of_optuna_trials = [100]
+
 ##########################################################################################################################
 
 class GoldenSectionSearch:
@@ -38,6 +54,8 @@ class GoldenSectionSearch:
 
         a_hyperparams = self.init_hyperparameters + a * self.hyperparameter_direction
         b_hyperparams = self.init_hyperparameters + b * self.hyperparameter_direction
+        a_hyperparams = np.maximum(a_hyperparams, 1e-10)
+        b_hyperparams = np.maximum(b_hyperparams, 1e-10)
 
         _ , a_optimal_weights, a_optimal_bias, _ = elastic_net_regression(x_train, y_train, a_hyperparams[0], a_hyperparams[1])
         _ , b_optimal_weights, b_optimal_bias, _ = elastic_net_regression(x_train, y_train, b_hyperparams[0], b_hyperparams[1])
@@ -109,21 +127,8 @@ class GoldenSectionSearch:
         optimal_hyperparameters, optimal_weights, optimal_bias, optimal_loss, optimal_delta = self.golden_section_search(delta_1, delta_2, tol)
         return optimal_hyperparameters, optimal_weights, optimal_bias, optimal_loss, optimal_delta
 
-if __name__ == '__main__':
 
-    # Loading Datasets as globals
-    BASE_DIRECTORY         = "."
-    DF_PREPROCESSED_DIR    = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle"
-    BASE_DIRECTORY         = BASE_DIRECTORY + "/outputs/plots"
-
-    global x_train, x_val, x_test, y_train, y_val, y_test
-    x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
-
-    # RUNNING ALL SIMULATIONS
-    
-    list_of_all_samplers    = ['grid', 'random', 'qmc', 'tpe']
-    num_simulation_trials   = 1
-    number_of_optuna_trials = [100]
+def hls_direction_search():
 
     full_results_dictionary = {}
     hls_final_model = {}
@@ -131,10 +136,14 @@ if __name__ == '__main__':
         full_results_dictionary[f"{sampler_type}"] = {}
         hls_final_model["hls_steps"+sampler_type] = []
         hls_final_model["hls_hyperparams"+sampler_type] = [] 
-        for optuna_trials in number_of_optuna_trials:
+
+        for optuna_trials in number_of_optuna_trials: # 100
+
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"] = {} #{ "Training_Losses":[], "Validation_Losses":[], "Testing_Losses":[] }
             tr_optuna_losses, tr_hls_losses, val_optuna_losses, val_hls_losses, test_optuna_losses, test_hls_losses = [], [], [], [], [], []
+            optuna_hyperparams, hls_hyperparams = [], []
             optuna_times, hls_times = [], []
+
             for simulation_number in range(num_simulation_trials):
 
                 # LOADING OPTUNA TRAINED MODELS
@@ -142,9 +151,7 @@ if __name__ == '__main__':
                 with open(OPTUNA_MODEL_DIRECTORY, "rb") as fout:
                         optuna_trained_models = pkl.load(fout)
                 model_info = optuna_trained_models[f'{sampler_type}_{optuna_trials}_{simulation_number}']
-                [ optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time ] = model_info
-
-                # print("\n\n optuna_time = ", optuna_time.total_seconds(), "\n\n")
+                [ optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time, optimal_trial_number ] = model_info
 
                 ###################################################### HLS #############################################################
 
@@ -187,20 +194,31 @@ if __name__ == '__main__':
                 test_optuna_losses.append(optuna_test_loss.numpy())
                 test_hls_losses.append(optimal_test_loss.numpy())
 
-                # Updating the HLS steps
-                hls_final_model["hls_steps"+sampler_type].append([optimal_weights, optimal_bias])
-                hls_final_model["hls_hyperparams"+sampler_type].append(optimal_hyperparameters)
+                optuna_hyperparams.append([init_hyperparameters[0].numpy(),init_hyperparameters[1].numpy()]) 
+                hls_hyperparams.append(optimal_hyperparameters)
+
+
+            # Updating the HLS steps
+            hls_final_model["hls_steps"+sampler_type].append([optimal_weights, optimal_bias])
+            hls_final_model["hls_hyperparams"+sampler_type].append(optimal_hyperparameters)
 
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Training_Losses"]   = [tr_optuna_losses,tr_hls_losses]
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Validation_Losses"] = [val_optuna_losses,val_hls_losses]
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Testing_Losses"]    = [test_optuna_losses,test_hls_losses]
             full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Runtimes"]          = [optuna_times,hls_times]
+            full_results_dictionary[f"{sampler_type}"][f"{optuna_trials}"]["Hyperparams"]       = [optuna_hyperparams,hls_hyperparams]
+
+    return full_results_dictionary, hls_final_model
+
+
+if __name__ == '__main__':
+
+    full_results_dictionary, hls_final_model = hls_direction_search()
 
     # Saving the output
     with open( BASE_DIRECTORY + f"/final_hls_output.pickle", "wb") as fout:
         pkl.dump(full_results_dictionary, fout)
     
     # Saving the output for plots
-    with open( BASE_DIRECTORY + f"/hls_final_model.pickle", "wb") as fout:
+    with open( BASE_DIRECTORY + f"/final_hls_model.pickle", "wb") as fout:
         pkl.dump(hls_final_model, fout)
-

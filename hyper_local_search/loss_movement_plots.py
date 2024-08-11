@@ -9,19 +9,25 @@ project_root = os.path.abspath(os.path.join(script_dir, '..'))
 utils_path = os.path.join(project_root, 'utils')
 sys.path.append(utils_path)
 
-
 # IMPORT LIBRARIES/MODULES
-
 from imports import *
 from helper_functions import *
 from curvature_information import *
 
 ##########################################################################################################################
+sumlation_number_for_plot = 10
+
 DF_PREPROCESSED_DIR = "./datasets/House_Price_Prediction/house_price_prediction.pickle"
 x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
 
-def plot_3d_losses(optuna_steps_, hls_steps_, show_vertical_lines=False, width=800, height=600, sampler_ = None, html_file=None):
+
+def plot_3d_losses(optuna_steps_, hls_steps_, show_vertical_lines=False, width=800, height=600, 
+                   sampler_ = None, html_file=None, simulation_num = 0
+                   ):
+    
     def extract_losses(steps, hyperparams):
+
+        print("\n\n", hyperparams, "\n\n")
         hyper_l1 = [params[0] for params in hyperparams]
         hyper_l2 = [params[1] for params in hyperparams]
         train_losses = []
@@ -41,7 +47,7 @@ def plot_3d_losses(optuna_steps_, hls_steps_, show_vertical_lines=False, width=8
         return hyper_l1, hyper_l2, train_losses, val_losses, test_losses
 
     optuna_hyper_l1, optuna_hyper_l2, optuna_train_losses, optuna_val_losses, optuna_test_losses = extract_losses(
-        optuna_steps_["optuna_steps"+sampler_], optuna_steps_["optuna_hyperparams"+sampler_])
+        optuna_steps_["optuna_steps"+sampler_][f'{simulation_num}'], optuna_steps_["optuna_hyperparams"+sampler_][f'{simulation_num}'])
     hls_hyper_l1, hls_hyper_l2, hls_train_losses, hls_val_losses, hls_test_losses = extract_losses(
         hls_steps_["hls_steps"+sampler_], hls_steps_["hls_hyperparams"+sampler_])
     
@@ -198,7 +204,8 @@ def plot_3d_losses(optuna_steps_, hls_steps_, show_vertical_lines=False, width=8
 
     # fig.show()
 
-def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_type = None, html_file=None):
+def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_type = None, html_file=None, simulation_num_str = '0'):
+
     def extract_losses(steps):
         train_losses = []
         val_losses = []
@@ -217,7 +224,7 @@ def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_typ
         return train_losses, val_losses, test_losses
 
     optuna_train_losses, optuna_val_losses, optuna_test_losses = extract_losses(
-        optuna_steps_["optuna_steps"+sampler_type])
+        optuna_steps_["optuna_steps"+sampler_type][simulation_num_str])
     hls_train_losses, hls_val_losses, hls_test_losses = extract_losses(
         hls_steps_["hls_steps"+sampler_type])
     
@@ -230,12 +237,15 @@ def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_typ
     
     fig = go.Figure()
 
+    marker_size = 14
+    line_width  = 4
+
     # Plot Optuna steps
     fig.add_trace(go.Scatter(
         x=optuna_steps, y=optuna_train_losses,
         mode='lines+markers+text',
-        marker=dict(size=5, color='rgba(0, 0, 255, 0.5)'),
-        line=dict(color='rgba(0, 0, 255, 0.5)'),
+        marker=dict(size=marker_size, color='rgba(0, 0, 255, 0.5)'),
+        line=dict(color='rgba(0, 0, 255, 0.5)',width = line_width),
         # text=[f'Step {step}' for step in optuna_steps],
         textposition='top center',
         name='Optuna Training Loss'
@@ -244,8 +254,8 @@ def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_typ
     fig.add_trace(go.Scatter(
         x=optuna_steps, y=optuna_val_losses,
         mode='lines+markers+text',
-        marker=dict(size=5, color='rgba(0, 255, 0, 0.5)'),
-        line=dict(color='rgba(0, 255, 0, 0.5)'),
+        marker=dict(size=marker_size, color='rgba(0, 255, 0, 0.5)'),
+        line=dict(color='rgba(0, 255, 0, 0.5)',width = line_width),
         # text=[f'Step {step}' for step in optuna_steps],
         textposition='top center',
         name='Optuna Validation Loss'
@@ -254,8 +264,8 @@ def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_typ
     fig.add_trace(go.Scatter(
         x=optuna_steps, y=optuna_test_losses,
         mode='lines+markers+text',
-        marker=dict(size=5, color='rgba(255, 0, 0, 0.5)'),
-        line=dict(color='rgba(255, 0, 0, 0.5)'),
+        marker=dict(size=marker_size, color='rgba(255, 0, 0, 0.5)'),
+        line=dict(color='rgba(255, 0, 0, 0.5)',width = line_width),
         # text=[f'Step {step}' for step in optuna_steps],
         textposition='top center',
         name='Optuna Test Loss'
@@ -265,8 +275,8 @@ def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_typ
     fig.add_trace(go.Scatter(
         x=hls_steps, y=hls_train_losses,
         mode='lines+markers+text',
-        marker=dict(size=5, color='blue'),
-        line=dict(color='blue'),
+        marker=dict(size=marker_size, color='blue'),
+        line=dict(color='blue',width = line_width),
         # text=[f'Step {step}' for step in hls_steps],
         textposition='top center',
         name='HLS Training Loss'
@@ -275,8 +285,8 @@ def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_typ
     fig.add_trace(go.Scatter(
         x=hls_steps, y=hls_val_losses,
         mode='lines+markers+text',
-        marker=dict(size=5, color='green'),
-        line=dict(color='green'),
+        marker=dict(size=marker_size, color='green'),
+        line=dict(color='green',width = line_width),
         # text=[f'Step {step}' for step in hls_steps],
         textposition='top center',
         name='HLS Validation Loss'
@@ -285,8 +295,8 @@ def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_typ
     fig.add_trace(go.Scatter(
         x=hls_steps, y=hls_test_losses,
         mode='lines+markers+text',
-        marker=dict(size=5, color='red'),
-        line=dict(color='red'),
+        marker=dict(size=marker_size, color='red'),
+        line=dict(color='red',width = line_width),
         # text=[f'Step {step}' for step in hls_steps],
         textposition='top center',
         name='HLS Test Loss'
@@ -319,41 +329,57 @@ def plot_2d_losses(optuna_steps_, hls_steps_, width=800, height=600, sampler_typ
         showlegend=False
     ))
 
+    # Setting title name
+    plot_title_text = ""
+    if sampler_type == 'grid': plot_title_text = "Grid Search"
+    elif sampler_type == 'random': plot_title_text = "Random Search"
+    elif sampler_type == 'qmc': plot_title_text = "Quasi Monte Carlo Search"
+    elif sampler_type == 'tpe': plot_title_text = "Tree-structured Parzen Estimator"
+    
+
     layout_config = {
-        "xaxis_title": 'Step Number',
-        "yaxis_title": 'MSE Loss',
-        # "title": 'Loss Movements',
-        "width": width,
-        "height": height,
-        "xaxis": {"visible": False}
+    "title": {"text": plot_title_text, "x": 0.5, "xanchor": "center"},
+    "xaxis_title": 'Step Number',
+    "yaxis_title": 'MSE Loss (B = Billion)',
+    "width": width,
+    "height": height,
+    "xaxis": {"visible": False},
+    "font": {"size": 16 }, # Adjust the size of text in the plot
+    "showlegend": True,
+    "legend": { "x":0.01, "y":0.01, "xanchor": "left", "yanchor": "bottom", 
+                "bgcolor": "rgba(255, 255, 255, 0.5)", "font": { "size": 12 }}, # Adjust the size of the legend text  
+    "paper_bgcolor": 'rgba(0,0,0,0)',  # Remove the paper background
+    "plot_bgcolor": 'rgba(0,0,0,0)'
     }
 
     fig.update_layout(**layout_config)
 
     if html_file:
-        fig.write_html(html_file+".html")
-        fig.write_image(html_file+".pdf", width=1500, height=1000, scale=2)
+
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(html_file), exist_ok=True)
+
+        # fig.write_html(html_file+f"_sim{simulation_num_str}"+".html")
+        fig.write_image(html_file+f"_sim{simulation_num_str}"+".pdf", width=width, height=height)
 
     # fig.show()
 
 if __name__ == '__main__':
 
     # SETTING DIRECTORY
-    WORKING_BASE_DIRECTORY = "./outputs/plots"
+    WORKING_BASE_DIRECTORY = "./outputs"
     #############################################
     list_of_all_samplers    = ['grid', 'random', 'qmc', 'tpe']
     # Loading the losses from optuna trainings
     with open(WORKING_BASE_DIRECTORY+"/optuna_steps_dict.pickle", "rb") as fout:
         optuna_steps_dict = pkl.load(fout)
-    with open(WORKING_BASE_DIRECTORY+"/hls_final_model.pickle", "rb") as fout:
+    with open(WORKING_BASE_DIRECTORY+"/final_hls_model.pickle", "rb") as fout:
         hls_step_dict = pkl.load(fout)
 
 
     # PLOTTING
     for sampler_type in list_of_all_samplers:
         # Printing the plots
-        plot_3d_losses(optuna_steps_dict, hls_step_dict, show_vertical_lines=True, width=2000, height=1500, sampler_ = sampler_type, html_file= WORKING_BASE_DIRECTORY + f'/plotly_plots/{sampler_type}_3Dloss_movement')
-        plot_2d_losses(optuna_steps_dict, hls_step_dict, width=1200, height=800, sampler_type = sampler_type, html_file= WORKING_BASE_DIRECTORY + f'/plotly_plots/{sampler_type}_2Dloss_movement')
-
-
-
+        # plot_3d_losses(optuna_steps_dict, hls_step_dict, show_vertical_lines=True, width=2000, height=1500, sampler_ = sampler_type, html_file= WORKING_BASE_DIRECTORY + f'/demo_plots/{sampler_type}_3Dloss_movement')
+        plot_2d_losses(optuna_steps_dict, hls_step_dict, width=800, height=600, sampler_type = sampler_type, 
+                       html_file= WORKING_BASE_DIRECTORY + f'/plotly_plots/{sampler_type}_2Dloss_movement', simulation_num_str = f'{sumlation_number_for_plot}')

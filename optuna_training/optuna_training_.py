@@ -1,137 +1,127 @@
 import sys
 import os
+from functools import partial
 
 # Determine the absolute path to the project root directory
-script_dir = os.path.dirname(__file__)
+script_dir   = os.path.dirname(__file__)
 project_root = os.path.abspath(os.path.join(script_dir, '..'))
-
-# Add the utils directory to the Python path
-utils_path = os.path.join(project_root, 'utils')
+utils_path   = os.path.join(project_root, 'utils')
 sys.path.append(utils_path)
 
-
 # IMPORT LIBRARIES/MODULES
-
 from imports import *
 from helper_functions import *
 
-# SET RANDOM SEET
-global SEED 
-
-model_steps = {}
-for sampler_ in ['grid', 'random', 'qmc', 'tpe']:
-    model_steps["optuna_steps"+sampler_] = []
-    model_steps["optuna_hyperparams"+sampler_] = []
-# np.random.seed(SEED)
-# tf.random.set_seed(SEED)
-
-# SET DIRECTORIES
-SEED = 123
-BASE_DIRECTORY = "."
-DF_PREPROCESSED_DIR = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle"
-WORKING_BASE_DIRECTORY = BASE_DIRECTORY + "/outputs/plots"
+#################################################################################################################
+########################################### OPTUNA RUN SETTINGS #################################################
 #################################################################################################################
 
-def optuna_optimizer(trial):
+# GLOBALS
+SEED                = None #111
+all_samplers        = ['grid', 'random', 'qmc', 'tpe'] # hyperparameter samplers  
+L1_hyperparam_range = [1e-10,10]                        # lasso hyperparameter range to sample from
+L2_hyperparam_range = [1e-10,10]                        # ridge hyperparameter range to sample from
 
-    hyper_l1 = trial.suggest_float('l1', 1e-10, 1.0) # L1 - Lasso
-    hyper_l2 = trial.suggest_float('l2', 1e-10, 1.0) # L2 - Ridge
+number_of_simulations_per_trial = 50                   # number of simulations for each sampler
+number_of_optuna_trials         = [100]                 # number of samplings/iterations with each sampler. (Use single entry for now)
 
-    model, optimal_weights, optimal_bias, _ = elastic_net_regression(x_train, y_train, hyper_l1, hyper_l2)
+# SET DIRECTORIES BELOW
+BASE_DIRECTORY         = "."
+DF_PREPROCESSED_DIR    = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle" # Data Directory
+WORKING_BASE_DIRECTORY = BASE_DIRECTORY  + "/outputs"  #/plots"                                            # Directory to output models
 
-    train_loss_unregularized = evaluate_loss(x_train, y_train, optimal_weights, optimal_bias)
-    val_loss_unregularized   = evaluate_loss(x_val, y_val, optimal_weights, optimal_bias)
-    test_loss_unregularized  = evaluate_loss(x_test, y_test, optimal_weights, optimal_bias)
+###################################################################
 
-    print("\nTraining:  Loss ", train_loss_unregularized)
-    print("Validation: Loss ", val_loss_unregularized)
-    print("Test:       Loss ", test_loss_unregularized, "\n\n")
+# SAVING INCUMBENT LOSSES and HYPERPARAMS - INITIALIZING (NOT YET READY FOR MULTIPLE ENTRIES IN "number_of_optuna_trials")
+model_steps = {} 
+for sampler_ in all_samplers:
+    model_steps["optuna_steps"+sampler_]       = {}
+    model_steps["optuna_hyperparams"+sampler_] = {}
+    for sim_ in range(number_of_simulations_per_trial):
+        model_steps["optuna_steps"+sampler_][f"{sim_}"]       = []
+        model_steps["optuna_hyperparams"+sampler_][f"{sim_}"] = []
 
-    # Saving Optuna Model Steps for Plotting (Optional)
+#################################################################################################################
+#################################################################################################################
 
+def optuna_optimizer(trial, sampler, datasets):
+
+    hyper_l1 = trial.suggest_float('l1', L1_hyperparam_range[0], L1_hyperparam_range[1]) # L1 - Lasso
+    hyper_l2 = trial.suggest_float('l2', L2_hyperparam_range[0], L2_hyperparam_range[1]) # L2 - Ridge
+
+    [x_train, x_val, x_test, y_train, y_val, y_test] = datasets
+    model, optimal_weights, optimal_bias, _          = elastic_net_regression(x_train, y_train, hyper_l1, hyper_l2)
+    val_loss_unregularized                           = evaluate_loss(x_val, y_val, optimal_weights, optimal_bias)
 
     score = val_loss_unregularized
     if score < optuna_optimizer.best_score:
-        model_steps["optuna_steps"+TYPE_OF_SAMPLER].append([optimal_weights, optimal_bias])
-        model_steps["optuna_hyperparams"+TYPE_OF_SAMPLER].append([hyper_l1, hyper_l2])
+        model_steps["optuna_steps"+sampler][f"{SIM_NUM}"].append([optimal_weights, optimal_bias])
+        model_steps["optuna_hyperparams"+sampler][f"{SIM_NUM}"].append([hyper_l1, hyper_l2])
         optuna_optimizer.best_score = score
         with open( WORKING_BASE_DIRECTORY + "/best_optuna_model.pickle", "wb") as fout:
             pkl.dump(model, fout)
-        print("Updated best model and training info with new best score: ", score)
 
     return score
 
-def optuna_training(num_trials):
-    time1 = datetime.now()
+def optuna_training(num_trials, datasets, sampler):
 
-    if TYPE_OF_SAMPLER == 'grid':
-        search_space = { f"l{i}" : list(np.linspace(1e-10,1,2*num_trials)) for i in range(1,3) }
+    time1 = datetime.now()
+    if sampler == 'grid':
+        search_space       = {}
+        num_grid_trials    = int(np.ceil(num_trials**0.5))
+        search_space["l1"] = list( np.linspace( L1_hyperparam_range[0], L1_hyperparam_range[1], num_grid_trials ) )
+        search_space["l2"] = list( np.linspace( L2_hyperparam_range[0], L2_hyperparam_range[1], num_grid_trials ) )
         study = optuna.create_study(sampler=optuna.samplers.GridSampler(search_space, seed=SEED), direction = "minimize") # seed=SEED
-    elif TYPE_OF_SAMPLER == 'random':
+    elif sampler == 'random':
         study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=SEED), direction = "minimize")
-    elif TYPE_OF_SAMPLER == 'qmc':
+    elif sampler == 'qmc':
         study = optuna.create_study(sampler=optuna.samplers.QMCSampler(seed=SEED), direction = "minimize")
-    elif TYPE_OF_SAMPLER == 'tpe':
+    elif sampler == 'tpe':
         study = optuna.create_study(sampler=optuna.samplers.TPESampler(seed=SEED), direction = "minimize")
     else:
         print(" Using default sampler.... TPESampler")
         study = optuna.create_study(direction="minimize")
-    
-    print("\n Using sampler = ", TYPE_OF_SAMPLER, "\n\n" )
 
-    study.optimize(optuna_optimizer, n_trials=num_trials)
+    study.optimize(partial(optuna_optimizer, sampler=sampler, datasets=datasets), n_trials=num_trials)
 
-    print('\n\n')
     trial = study.best_trial
-    print("Best Score: ", trial.value)
-    print("Best Params: ")
-    for key, value in trial.params.items():
-        print("  {}: {}".format(key, value))
-
-    print("\n\n ", "Trial Number: ", trial.number, "\n")
-
     time2 = datetime.now()
     delta = time2 - time1
-    print(f"Time difference is {delta.total_seconds()} seconds")
 
     with open( WORKING_BASE_DIRECTORY + "/best_optuna_model.pickle", "rb") as fin:
         best_clf = pkl.load(fin)
 
     optuna_model_weights = best_clf.coef_
     optuna_model_bias    = best_clf.intercept_
-    init_hyperparameters = [tf.Variable(value) for key, value in trial.params.items()]
+    init_hyperparameters = [tf.Variable(value) for _ , value in trial.params.items()]
 
-    return optuna_model_weights, optuna_model_bias, init_hyperparameters, delta
+    return optuna_model_weights, optuna_model_bias, init_hyperparameters, delta, trial.number
 
-def run_optuna_training(sampler, trials):
+def run_optuna_training(sampler, datasets, trials, simulation_num):
 
-    global TYPE_OF_SAMPLER
-    global x_train, x_val, x_test, y_train, y_val, y_test
-    # Loading dataset
-    x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
-    # Running Optuna Training
-    TYPE_OF_SAMPLER = sampler # 'grid', 'random', 'qmc', 'tpe'
-    NUM_OPTUNA_TRIALS = trials 
+    global SIM_NUM
+    SIM_NUM = simulation_num
+
     optuna_optimizer.best_score = float('inf')  # initial score set to a very large number
-    optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time = optuna_training(NUM_OPTUNA_TRIALS)
-    model__ = [optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time]
+    optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time, optimal_trial_number = optuna_training(trials, datasets, sampler)
+    model__ = [optuna_model_weights, optuna_model_bias, init_hyperparameters, optuna_time, optimal_trial_number] # output into backup_dictionary
 
     return model__
 
 if __name__ == "__main__":
 
-    all_samplers = ['grid', 'random', 'qmc', 'tpe']
-
-    number_of_simulations_per_trial = 1
-    number_of_optuna_trials = [100] 
-
     backup_dictionary = {}
+
+    x_train, x_val, x_test, y_train, y_val, y_test = load_dataset(DF_PREPROCESSED_DIR)
+    datasets = [x_train, x_val, x_test, y_train, y_val, y_test]
 
     for num_trials in number_of_optuna_trials:
         for sampler in all_samplers:
             for simulation_num in range(number_of_simulations_per_trial):
-                model_info                    = run_optuna_training(sampler, num_trials)
+                model_info                    = run_optuna_training(sampler, datasets, num_trials, simulation_num)
                 backup_dictionary[f'{sampler}_{num_trials}_{simulation_num}'] = model_info
+
+    # SAVING THE MODEL AND INCUMBENT LOSS INFO
     with open( WORKING_BASE_DIRECTORY + f"/all_optuna_models_{number_of_simulations_per_trial}_simulations.pickle", "wb") as fout:
             pkl.dump(backup_dictionary, fout)
     with open( WORKING_BASE_DIRECTORY + f"/optuna_steps_dict.pickle", "wb") as fout:

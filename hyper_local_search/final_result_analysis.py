@@ -32,10 +32,11 @@ def calculate_95_ci(data):
 if __name__ == '__main__':
 
     # FINAL RESULTS OUTPUT DIRECTORY
-    output_directory = "C:\\Users\\Sandeep\\Desktop\\Github-SGunwal\\HyperLocalTuning\\outputs\\HLS_Results\\"
+    base_dir         = "C:\\Users\\Sandeep\\Desktop\\Github-SGunwal\\HyperLocalTuning\\outputs\\"
+    output_directory = base_dir + "results_summary\\"
 
     # LOAD PREPROCESSED DATA
-    full_result_path = output_directory + "final_hls_output.pickle"
+    full_result_path = base_dir + "final_hls_output.pickle"
     with open(full_result_path, "rb") as fin:
         data = pkl.load(fin)
 
