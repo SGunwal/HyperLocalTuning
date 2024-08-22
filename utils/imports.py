@@ -9,6 +9,7 @@ import tensorflow as tf
 import optuna
 import pickle as pkl
 from datetime import datetime
+import time
 import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
