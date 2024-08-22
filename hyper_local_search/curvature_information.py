@@ -48,9 +48,7 @@ def exact_gradient_validation(x_validation, y_validation, w, b, batch_size=None)
             end = min(start + batch_size, n_samples)
             X_batch = X[start:end]
             y_batch = y[start:end]
-            batch_size_actual = end - start
-            # Compute residuals for the batch
-            residuals_batch = y_batch - (np.dot(X_batch, w) + b)
+            residuals_batch = y_batch - (np.dot(X_batch, w.reshape(-1,1)) + b)
             # Update the gradients
             grad_w += -(2 / n_samples) * np.dot(X_batch.T, residuals_batch)
             grad_b += -(2 / n_samples) * np.sum(residuals_batch)
@@ -105,7 +103,6 @@ def hessian_part_B(X, hyperparams, batch_size = None):
         for start in range(0, n_samples, batch_size):
             end = min(start + batch_size, n_samples)
             X_batch = X_augmented[start:end]
-            batch_size_actual = end - start
             # Update the Hessian matrix
             H += (2 / n_samples) * np.dot(X_batch.T, X_batch)
 
@@ -117,7 +114,7 @@ def hessian_part_B(X, hyperparams, batch_size = None):
 
 def constraint_coefficients(df_training, initial_weights, intial_hyperparameters):
     HA = np.array(hessian_part_A( initial_weights )) # 14*2
-    HB = hessian_part_B(df_training, intial_hyperparameters)  # 14*14
+    HB = hessian_part_B(df_training, intial_hyperparameters, None)  # 14*14
     return np.hstack((HA, HB)) # 14*16 - [L1,L2,W,b] => (1,1,13,1)
 
 #################### DIRECTION PROBLEM ###########################

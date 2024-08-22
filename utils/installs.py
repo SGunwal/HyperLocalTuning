@@ -15,11 +15,14 @@ packages = [
     'math',
     'tensorflow',
     'optuna',
-    'pickle',  # pkl is a module, but it's referred to as pickle5 for installation
+    'pickle',  
     'datetime',
     'matplotlib',
     'seaborn',
-    'scikit-learn'
+    'scikit-learn',
+    'plotly',
+    'config',
+    'kaleido'
 ]
 
 # Install each package
