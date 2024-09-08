@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this code or repository, please cite it as below."
+authors:
+    - family-names: "Gunwal"
+    given-names: "Satebder"
+    affiliation: "University of Illinois Chicago"
+    orcid: "0000-0002-0780-1762"
+  - family-names: "Sinha"
+    given-names: "Ankur"
+    affiliation: "Indian Institute of Management Ahmedabad"
+    orcid: "0000-0002-0464-6736"
+title: "Hyper Local Search"
+version: "1.0.0"
+date-released: "2024-09-08"
+# doi: ""
+repository-code: "https://github.com/SGunwal/HyperLocalTuning"
