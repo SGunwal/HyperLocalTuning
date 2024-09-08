@@ -1,2 +1,2 @@
 # HyperLocalTuning
-Local hyperparameter tuning for common machine learning models
+We introduce a linear programming-based hyper local search approach for hyperparameter tuning of machine learning models. The approach finetunes continuous hyperparameters and model parameters through a linear program, enhancing model generalization in the vicinity of an initial model. The proposed method converts hyperparameter optimization into a bilevel program and identifies a descent direction to improve validation loss. The results in the paper show that the proposed approach boosts model quality in validation and test performance.
