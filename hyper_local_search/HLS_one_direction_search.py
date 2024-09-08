@@ -429,7 +429,7 @@ if __name__ == '__main__':
     SIMULATIONS    = 50
 
     BASE_DIRECTORY         = "."
-    DF_PREPROCESSED_DIR    = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle" # "/datasets/Simulation_Dataset/simulation_dataset.pickle"  # 
+    DF_PREPROCESSED_DIR    = BASE_DIRECTORY + "/datasets/House_Price_Prediction/house_price_prediction.pickle" #""  
     WORKING_BASE_DIRECTORY = BASE_DIRECTORY + "/outputs"
     HLS_OUTPUT_PATH        = WORKING_BASE_DIRECTORY + f'/results_summary/results_summary_{OPTUNA_TRIALS}_{SIMULATIONS}.xlsx'
 
