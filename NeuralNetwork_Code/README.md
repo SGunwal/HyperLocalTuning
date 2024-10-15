@@ -2,11 +2,11 @@
 
 This file contains five sections:
 
-- **SEC0**: Contains the details of materials provided in the zip file.
+- **SEC0**: Contains the details and links for materials.
 - **SEC1**: Contains directions to run the models in case the reviewers use the provided Optuna trained models.
 - **SEC2**: Contains directions to train the Optuna models and save the pickle file. Afterwards, please follow SEC1 for hyper local tuning.
-- **SEC3**: Contains directions for Gurobi license. **PLEASE READ CAREFULLY.**
-- **SEC4**: Provides details of the major libraries used, along with their versions.
+- **SEC3**: Contains directions for Gurobi license.
+- **SEC4**: Provides details of the major libraries used at the time of experiments, along with their versions.
 
 ---
 
@@ -16,15 +16,13 @@ This file contains five sections:
 
 - **ResNet50_Optuna_models**: Contains four pickle files for Optuna trained models with ResNet50 setting. The path of these files is required in the `OPTUNA_MODEL_DIRECTORY` variable in the `ResNet50_HLS.ipynb` notebook.
 
-  **Note**: This folder can be accessed from the drive folder [here](https://drive.google.com/drive/folders/16nLo4vAecD6kphYx3Pa5DYE0vciyiZpD?usp=sharing). Please open in incognito mode in your browser and download the data.
+  **Note**: This folder can be accessed from the drive folder [here](https://drive.google.com/drive/folders/16nLo4vAecD6kphYx3Pa5DYE0vciyiZpD?usp=sharing).
 
 - **CIFAR_10_20K**: Contains the data files of the CIFAR-10 dataset. Training, validation, and testing data files provided are the ones used in our experiments.
 
-**Note**: The Appendix is also provided along with the above four folders.
-
 ---
 
-## SEC1 => Directions: With Optuna Models
+## SEC1: Directions With Optuna Models
 
 There are two models for which notebooks are provided:
 
@@ -36,7 +34,7 @@ There are two models for which notebooks are provided:
 The following directions are for both types of models:
 
 1. In the second cell, please provide the directories of the data files, Optuna trained model file, and the full output directory with the Excel (.xlsx) file name.
-2. In addition, please specify a Gurobi environment to run the solver. The model is too large for the free version, so at least an academic license is required. In case you do not have access to a license or have any other issues, please see section 3 ("GUROBI LICENSE") provided below.
+2. In addition, please specify a Gurobi environment to run the solver. The model is too large for the free version, so at least an academic license is required. 
 3. Finally, run all the remaining cells. The output is printed as a log of the final cell and as an Excel file in the output directory.
 4. In the case of `CNN_HLS.ipynb`, please mention the number of dense layers of the model (3 or 5).
 
@@ -46,7 +44,7 @@ The following directions are for both types of models:
 
 ---
 
-## SEC2 => Directions: Without Optuna Models
+## SEC2: Directions Without Optuna Models
 
 For both models, notebooks are provided to generate an Optima Optuna model:
 
@@ -65,14 +63,12 @@ The following directions are for both types of models:
 
 ---
 
-## SEC3 => GUROBI LICENSE
-
-**Warning**: I am providing my license in case reviewers have problems getting the license. Please run the code with `OutputFlag = 0`, else my email ID with the academic license will be revealed in the log. This might be a violation of the double-blind policy. We request reviewers to use their own academic license as it is easily available on institute IDs.
+## SEC3: GUROBI LICENSE
 
 ```python
 ENV = gp.Env( empty=True )
-ENV.setParam( 'WLSACCESSID', 'cb136981-0bca-4371-bc91-bbd790665808' )   
-ENV.setParam( 'WLSSECRET', '778a30cf-9e77-4f76-96a0-cdcf3e39e932' )    
-ENV.setParam( 'LICENSEID', 815980 )
+ENV.setParam( 'WLSACCESSID', 'xxxxx' )   
+ENV.setParam( 'WLSSECRET', 'xxxxx' )    
+ENV.setParam( 'LICENSEID', xxxxxx )
 ENV.setParam( 'OutputFlag', 0 )      # To Turn-off Logs
 ENV.start()
