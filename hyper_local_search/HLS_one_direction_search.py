@@ -433,13 +433,13 @@ if __name__ == '__main__':
     WORKING_BASE_DIRECTORY = BASE_DIRECTORY + "/outputs"
     HLS_OUTPUT_PATH        = WORKING_BASE_DIRECTORY + f'/results_summary/results_summary_{OPTUNA_TRIALS}_{SIMULATIONS}.xlsx'
 
-    GIVE_LOSS_PLOTS             = True                                                                          # Bool. If yes, choose the simulation for which to plot losses
-    SIMULATION_NUMBER_TO_PLOT   = 0                                                                             # Simulation number out of total "SIMULATIONS" for which to plot training, testing and validation loss movements
-    PLOTS_OUTPUT_PATH           =  WORKING_BASE_DIRECTORY + f'/plotly_plots'
+    # GIVE_LOSS_PLOTS             = True                                                                          # Bool. If yes, choose the simulation for which to plot losses
+    # SIMULATION_NUMBER_TO_PLOT   = 0                                                                             # Simulation number out of total "SIMULATIONS" for which to plot training, testing and validation loss movements
+    # PLOTS_OUTPUT_PATH           =  WORKING_BASE_DIRECTORY + f'/plotly_plots'
 
     # IGNORE IF WORKING_BASE_DIRECTORY SAME AS OPTUNA'S TRAINING. 
     OPTUNA_MODEL_DIRECTORY        = WORKING_BASE_DIRECTORY + f"/all_optuna_models_{SIMULATIONS}_simulations.pickle" 
-    OPTUNA_LOSSES_DICTIONARY_PATH = WORKING_BASE_DIRECTORY +"/optuna_steps_dict.pickle"
+    # OPTUNA_LOSSES_DICTIONARY_PATH = WORKING_BASE_DIRECTORY +"/optuna_steps_dict.pickle"
 
     ############################################################################
 
@@ -488,14 +488,14 @@ if __name__ == '__main__':
 
     hls_result_analysis(full_results_dictionary, HLS_OUTPUT_PATH)
 
-    ######################## PLOTING LOSS STEPS FOR CHOSEN SIMULATION ############################
+    # ######################## PLOTING LOSS STEPS FOR CHOSEN SIMULATION ############################
 
-    with open(OPTUNA_LOSSES_DICTIONARY_PATH, "rb") as fout:
-        optuna_steps_dict = pkl.load(fout)
+    # with open(OPTUNA_LOSSES_DICTIONARY_PATH, "rb") as fout:
+    #     optuna_steps_dict = pkl.load(fout)
 
-    for sampler_type in HLS_Tuning_Settings["Samplers"]:
+    # for sampler_type in HLS_Tuning_Settings["Samplers"]:
 
-        plot_2d_losses(DATASETS, optuna_steps_dict, hls_final_model, width=800, height=600, sampler_type = sampler_type, 
-                        file_name = PLOTS_OUTPUT_PATH + F"/{sampler_type}_2Dloss_movement", 
-                        simulation_num_str = f'{SIMULATION_NUMBER_TO_PLOT}'
-                        )
+    #     plot_2d_losses(DATASETS, optuna_steps_dict, hls_final_model, width=800, height=600, sampler_type = sampler_type, 
+    #                     file_name = PLOTS_OUTPUT_PATH + F"/{sampler_type}_2Dloss_movement", 
+    #                     simulation_num_str = f'{SIMULATION_NUMBER_TO_PLOT}'
+    #                     )
