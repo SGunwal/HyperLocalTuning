@@ -8,7 +8,8 @@ Our results consistently demonstrate improvements in validation performance and,
 
 ## Directions for Running Elastic Net Regression with Hyper Local Search
 
-**Note**: Current directions are only available for running the code as a project in Visual Studio Code (VSCode). It should work on other editors as well, but the code has been developed specifically in VSCode. We will update a Jupyter notebook with detailed steps later.
+**Note-1**: `NeuralNetwork_Code` folder contains the code and its directions for the neural network models used in our study.  
+**Note-2**: Current directions are only available for running the code as a project in Visual Studio Code (VSCode). It should work on other editors as well, but the code has been developed specifically in VSCode. We will update a Jupyter notebook with detailed steps later.
 
 ### Overview
 
