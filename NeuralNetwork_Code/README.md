@@ -10,7 +10,7 @@ This file contains five sections:
 
 ---
 
-## SEC0 => Folder Details
+## SEC0: Folder Details
 
 - **Colab_Notebooks**: Contains four Colab notebooks corresponding to Optuna training and hyper local tuning. Details are given in sections below.
 
