@@ -56,3 +56,7 @@ During OPTUNA training, the Adam optimizer was used with a learning rate of 0.00
 
 **Computing Platform**  
 Experiments on neural network models were conducted on the Google Colab platform with a pro plus subscription. The allocated CPU model was an Intel(R) Xeon(R) CPU @ 2.20GHz with 12 logical processors and 83.5 GB of system RAM. The GPU employed was Nvidia A100 with 40.0 GB of GPU RAM. Regression models were implemented on an AMD Ryzen 5 3550H processor with 8 computing units and 24 GB RAM, without GPU utilization.
+
+## Cite
+
+Sinha, A., & Gunwal, S. (2024). Hyper Local Tuning of Continuous Hyperparameters (Version 1.0.0) [Computer software]. https://github.com/SGunwal/HyperLocalTuning
